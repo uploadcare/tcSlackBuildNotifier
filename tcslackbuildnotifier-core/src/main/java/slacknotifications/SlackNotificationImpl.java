@@ -259,8 +259,17 @@ public class SlackNotificationImpl implements SlackNotification {
 
             HttpPost httppost = new HttpPost(url);
 
+            String text = "";
             if (this.payload != null) {
-                requestBody.setText(payload.getBuildDescriptionWithLinkSyntax());
+                // one line messages
+                String description = payload.getBuildDescriptionWithLinkSyntax();
+                if (StringUtil.isEmpty(templateTitle)) {
+                    // Single line mode
+                    text = detectMessageIcon(payload.getColor()) + " " + description + renderTemplate(payload.getParams());
+                } else {
+                    text = description;
+                }
+                requestBody.setText(text);
                 requestBody.setAttachments(getAttachments());
             }
 
@@ -399,9 +408,14 @@ public class SlackNotificationImpl implements SlackNotification {
 
     private void addCustomTemplate(Attachment attachment, Map<String, String> dataModel) {
         String title = templateTitle != null ? templateTitle : "";
-        if (title.isEmpty()) return;
+        if (title.isEmpty()) {
+            Loggers.SERVER.info("SlackNotification: title is empty");
+            return;
+        }
 
         String bodyText = renderTemplate(dataModel);
+        Loggers.SERVER.info("SlackNotificationListener: body - " + bodyText);
+
         attachment.addField(title, bodyText, false);
     }
 
